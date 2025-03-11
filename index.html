@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>3rd Grader Jeopardy Game</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Righteous&display=swap" rel="stylesheet">
+  <style>
+    /* 整体样式 */
+    body {
+      font-family: 'Roboto', sans-serif;
+      background: linear-gradient(135deg, #74ebd5, #ACB6E5);
+      text-align: center;
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+    h1 {
+      margin-top: 20px;
+      font-family: 'Righteous', cursive;
+      font-size: 3rem;
+      color: #fff;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+    #scoreboard {
+      font-size: 1.8rem;
+      margin: 20px;
+      color: #fff;
+      transition: transform 0.3s ease;
+    }
+    /* 游戏板 */
+    #game-board {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      width: 90%;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    .category {
+      background-color: #203a43;
+      color: #fff;
+      padding: 15px;
+      font-weight: 700;
+      border: 1px solid #fff;
+      border-radius: 5px;
+    }
+    .card {
+      background-color: #007bff;
+      color: #fff;
+      padding: 25px;
+      cursor: pointer;
+      border: none;
+      font-size: 1.5rem;
+      transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    .card:hover {
+      background: linear-gradient(135deg, #0056b3, #007bff);
+      transform: scale(1.05);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+    .card.disabled {
+      background-color: #6c757d;
+      cursor: default;
+      box-shadow: none;
+    }
+    .button {
+      padding: 10px 20px;
+      margin: 10px;
+      cursor: pointer;
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+      font-size: 1.2rem;
+      border-radius: 5px;
+      transition: background 0.3s ease, transform 0.2s ease;
+    }
+    .button:hover {
+      background-color: #0056b3;
+      transform: translateY(-2px);
+    }
+    /* 模态框样式 */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.6);
+    }
+    .modal.fade-in {
+      animation: fadeIn 0.3s forwards;
+    }
+    .modal.fade-out {
+      animation: fadeOut 0.3s forwards;
+    }
+    .modal-content {
+      background-color: #fff;
+      margin: 5% auto;
+      padding: 30px;
+      border: none;
+      width: 90%;
+      max-width: 800px;
+      border-radius: 10px;
+      position: relative;
+      text-align: left;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+      font-size: 1.4rem;
+      line-height: 1.6;
+    }
+    .modal-content h2 {
+      font-family: 'Righteous', cursive;
+      font-size: 2.5rem;
+      margin-bottom: 20px;
+    }
+    .close {
+      color: #aaa;
+      position: absolute;
+      right: 15px;
+      top: 10px;
+      font-size: 32px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .close:hover {
+      color: #000;
+    }
+    /* 倒计时 */
+    .timer {
+      font-size: 1.4rem;
+      color: #dc3545;
+      margin-bottom: 15px;
+    }
+    /* 动画效果 */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes fadeOut {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+    .ribbon {
+      position: fixed;
+      top: 40%;
+      left: -200px;
+      z-index: 2000;
+      font-size: 3rem;
+      color: #ff4081;
+      transform: rotate(20deg);
+      animation: ribbonFly 1.5s forwards;
+    }
+    @keyframes ribbonFly {
+      0% { left: -200px; opacity: 0; }
+      50% { opacity: 1; }
+      100% { left: 100%; opacity: 0; }
+    }
+    .wacky {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 2000;
+      font-size: 2.5rem;
+      color: #28a745;
+      animation: wackyShake 1.5s;
+    }
+    @keyframes wackyShake {
+      0%, 100% { transform: translate(-50%, -50%) rotate(0deg); }
+      25% { transform: translate(-50%, -50%) rotate(10deg); }
+      50% { transform: translate(-50%, -50%) rotate(-10deg); }
+      75% { transform: translate(-50%, -50%) rotate(10deg); }
+    }
+    /* 提示与答案切换区域 */
+    .toggle-content {
+      margin-top: 15px;
+      padding: 10px;
+      background-color: #f1f1f1;
+      border-radius: 5px;
+      display: none;
+    }
+    /* 得分板动画 */
+    .score-update {
+      animation: scaleUp 0.3s ease;
+    }
+    @keyframes scaleUp {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); }
+    }
+    /* 响应式设计 */
+    @media (max-width: 768px) {
+      #game-board {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .category, .card {
+        font-size: 1.2rem;
+        padding: 15px;
+      }
+      .modal-content {
+        font-size: 1.2rem;
+      }
+      .button {
+        font-size: 1rem;
+        padding: 8px 16px;
+      }
+    }
+    @media (max-width: 480px) {
+      h1 {
+        font-size: 2rem;
+      }
+      .modal-content h2 {
+        font-size: 2rem;
+      }
+      .timer {
+        font-size: 1.2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>3rd Grader Jeopardy Game</h1>
+  <div id="scoreboard" aria-live="polite">Score: 0</div>
+  <div id="game-board"></div>
+  <button class="button" onclick="resetGame()" aria-label="Reset Game">Reset Game</button>
+
+  <!-- 音效 -->
+  <audio id="correctSound" src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg"></audio>
+  <audio id="incorrectSound" src="https://actions.google.com/sounds/v1/cartoon/slide_whistle_to_drum_hit.ogg"></audio>
+
+  <!-- 模态框 -->
+  <div id="modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal()" aria-label="Close Modal">&times;</span>
+      <div class="timer" id="timer">Time left: 15s</div>
+      <div id="modal-body"></div>
+      <div id="toggle-sections">
+        <div id="hint-section" class="toggle-content"></div>
+        <div id="answer-section" class="toggle-content"></div>
+      </div>
+      <div id="modal-buttons"></div>
+    </div>
+  </div>
+
+  <script>
+    // 定义问题数据，包含 hint 属性
+    const questions = {
+      "English": [
+        { value: 100, question: "What is the past tense of the verb 'run'?", answer: "Ran", hint: "It rhymes with 'ran'." },
+        { value: 200, question: "What punctuation mark do you put at the end of a question?", answer: "A question mark (?)", hint: "It curves at the end." },
+        { value: 300, question: "Identify the noun in this sentence: 'The cat jumped over the fence.'", answer: "Cat, fence", hint: "Think about objects or things." },
+        { value: 400, question: "What is an antonym for the word 'happy'?", answer: "Sad", hint: "It means not happy." }
+      ],
+      "Math": [
+        { value: 100, question: "What is 8 + 7?", answer: "15", hint: "Add them together." },
+        { value: 200, question: "What is half of 100?", answer: "50", hint: "Divide 100 by 2." },
+        { value: 300, question: "A pizza is cut into 8 equal slices. If you eat 3 slices, how many are left?", answer: "5 slices", hint: "Subtract the eaten slices from the total." },
+        { value: 400, question: "What is the value of the digit 5 in the number 5,432?", answer: "5,000", hint: "It's in the thousands place." }
+      ],
+      "Science": [
+        { value: 100, question: "What do plants need to make their own food?", answer: "Sunlight, water, air (carbon dioxide)", hint: "Think about photosynthesis." },
+        { value: 200, question: "What part of your body helps you pump blood?", answer: "The heart", hint: "It's a muscular organ in your chest." },
+        { value: 300, question: "What is the solid form of water?", answer: "Ice", hint: "It's frozen water." },
+        { value: 400, question: "What gas do humans breathe in to survive?", answer: "Oxygen", hint: "Essential for life." }
+      ],
+      "History": [
+        { value: 100, question: "Who was the first president of the United States?", answer: "George Washington", hint: "He is on the one-dollar bill." },
+        { value: 200, question: "What holiday celebrates America’s independence from Britain?", answer: "The Fourth of July (Independence Day)", hint: "Fireworks and parades." },
+        { value: 300, question: "What do we call the document that starts with 'We the People' and is the supreme law of the U.S.?", answer: "The Constitution", hint: "It has articles and amendments." },
+        { value: 400, question: "Who was famous for saying, 'I have a dream' in a speech about civil rights?", answer: "Martin Luther King Jr.", hint: "A leader for equality." }
+      ],
+      "Critical Thinking": [
+        { value: 100, question: "What is the next number in this pattern: 2, 4, 6, 8, __?", answer: "10", hint: "Keep adding 2." },
+        { value: 200, question: "If you have 3 apples and you take away 2, how many do you have?", answer: "2 (because you took them)", hint: "Be careful with the wording." },
+        { value: 300, question: "A farmer has 10 sheep. All but 3 run away. How many does he have left?", answer: "3", hint: "The answer is in the question." },
+        { value: 400, question: "What has to be broken before you can use it?", answer: "An egg", hint: "It's fragile and used for cooking." }
+      ]
+    };
+
+    let score = 0;
+    let currentTimer;
+    let timeLeft = 15;
+
+    // 更新得分板并添加动画效果
+    function updateScore(amount) {
+      score += amount;
+      const scoreboard = document.getElementById('scoreboard');
+      scoreboard.innerText = "Score: " + score;
+      scoreboard.classList.add('score-update');
+      setTimeout(() => scoreboard.classList.remove('score-update'), 300);
+    }
+
+    // 播放音效
+    function playSound(id) {
+      const sound = document.getElementById(id);
+      if(sound) {
+        sound.currentTime = 0;
+        sound.play();
+      }
+    }
+
+    // 正确回答时显示丝带动画
+    function showRibbon() {
+      const ribbon = document.createElement('div');
+      ribbon.className = "ribbon";
+      ribbon.innerText = "🎉";
+      document.body.appendChild(ribbon);
+      setTimeout(() => { ribbon.remove(); }, 1500);
+    }
+
+    // 错误回答时显示搞怪动画
+    function showWacky() {
+      const wacky = document.createElement('div');
+      wacky.className = "wacky";
+      wacky.innerText = "Oops! Try again! 😊";
+      document.body.appendChild(wacky);
+      setTimeout(() => { wacky.remove(); }, 1500);
+    }
+
+    // 创建游戏板
+    function createBoard() {
+      const board = document.getElementById('game-board');
+      board.innerHTML = "";
+      // 创建类别标题行
+      for (let category in questions) {
+        const catDiv = document.createElement('div');
+        catDiv.className = "category";
+        catDiv.innerText = category;
+        board.appendChild(catDiv);
+      }
+      // 为每个类别生成4行题目卡片
+      for (let i = 0; i < 4; i++) {
+        for (let category in questions) {
+          const q = questions[category][i];
+          const card = document.createElement('div');
+          card.className = "card";
+          card.innerText = "$" + q.value;
+          card.tabIndex = 0;
+          card.onclick = function() {
+            if (this.classList.contains('disabled')) return;
+            openQuestion(category, i, card);
+          };
+          board.appendChild(card);
+        }
+      }
+    }
+
+    // 启动倒计时，时间耗尽时自动执行回调（标记错误）
+    function startTimer(callback) {
+      timeLeft = 15;
+      const timerElement = document.getElementById('timer');
+      timerElement.innerText = "Time left: " + timeLeft + "s";
+      currentTimer = setInterval(() => {
+        timeLeft--;
+        timerElement.innerText = "Time left: " + timeLeft + "s";
+        if(timeLeft <= 0) {
+          clearInterval(currentTimer);
+          callback();
+        }
+      }, 1000);
+    }
+
+    // 停止倒计时
+    function stopTimer() {
+      clearInterval(currentTimer);
+    }
+
+    // 打开题目模态框：包含提示、答案切换区域和倒计时
+    function openQuestion(category, index, cardElement) {
+      const modal = document.getElementById('modal');
+      const modalBody = document.getElementById('modal-body');
+      const modalButtons = document.getElementById('modal-buttons');
+      const hintSection = document.getElementById('hint-section');
+      const answerSection = document.getElementById('answer-section');
+      const currentQuestion = questions[category][index];
+
+      // 清空之前内容
+      hintSection.style.display = "none";
+      answerSection.style.display = "none";
+      hintSection.innerHTML = "";
+      answerSection.innerHTML = "";
+      modalBody.innerHTML = `<h2 id="modalTitle">${category} - $${currentQuestion.value}</h2>
+                             <p>${currentQuestion.question}</p>`;
+      modalButtons.innerHTML = "";
+
+      // 提示按钮
+      const hintBtn = document.createElement('button');
+      hintBtn.className = "button";
+      hintBtn.innerText = "Show Hint";
+      hintBtn.onclick = function() {
+        hintSection.innerHTML = `<p><strong>Hint:</strong> ${currentQuestion.hint}</p>`;
+        hintSection.style.display = "block";
+        hintBtn.disabled = true;
+      };
+      modalButtons.appendChild(hintBtn);
+
+      // 答案按钮
+      const answerBtn = document.createElement('button');
+      answerBtn.className = "button";
+      answerBtn.innerText = "Show Answer";
+      answerBtn.onclick = function() {
+        answerSection.innerHTML = `<p><strong>Answer:</strong> ${currentQuestion.answer}</p>`;
+        answerSection.style.display = "block";
+        answerBtn.disabled = true;
+      };
+      modalButtons.appendChild(answerBtn);
+
+      // 正确按钮
+      const correctBtn = document.createElement('button');
+      correctBtn.className = "button";
+      correctBtn.innerText = "Correct!";
+      correctBtn.onclick = function() {
+        stopTimer();
+        updateScore(currentQuestion.value);
+        showRibbon();
+        playSound('correctSound');
+        closeModal();
+        cardElement.classList.add('disabled');
+        cardElement.innerText = "";
+      };
+      modalButtons.appendChild(correctBtn);
+
+      // 错误按钮
+      const incorrectBtn = document.createElement('button');
+      incorrectBtn.className = "button";
+      incorrectBtn.innerText = "Incorrect";
+      incorrectBtn.onclick = function() {
+        stopTimer();
+        updateScore(-currentQuestion.value);
+        showWacky();
+        playSound('incorrectSound');
+        closeModal();
+        cardElement.classList.add('disabled');
+        cardElement.innerText = "";
+      };
+      modalButtons.appendChild(incorrectBtn);
+
+      // 打开模态框（淡入效果）
+      modal.classList.remove('fade-out');
+      modal.classList.add('fade-in');
+      modal.style.display = "block";
+
+      // 启动倒计时，时间结束自动判定错误
+      startTimer(() => {
+        updateScore(-currentQuestion.value);
+        showWacky();
+        playSound('incorrectSound');
+        closeModal();
+        cardElement.classList.add('disabled');
+        cardElement.innerText = "";
+      });
+    }
+
+    // 关闭模态框（淡出效果）
+    function closeModal() {
+      stopTimer();
+      const modal = document.getElementById('modal');
+      modal.classList.remove('fade-in');
+      modal.classList.add('fade-out');
+      setTimeout(() => {
+        modal.style.display = "none";
+        modal.classList.remove('fade-out');
+      }, 300);
+    }
+
+    // 重置游戏：清零得分并重建游戏板
+    function resetGame() {
+      score = 0;
+      updateScore(0);
+      createBoard();
+    }
+
+    // 添加键盘支持：Esc键关闭模态框
+    document.addEventListener('keydown', function(event) {
+      if (event.key === "Escape") {
+        const modal = document.getElementById('modal');
+        if (modal.style.display === "block") {
+          closeModal();
+        }
+      }
+    });
+
+    // 初始化游戏板
+    createBoard();
+  </script>
+</body>
+</html>
